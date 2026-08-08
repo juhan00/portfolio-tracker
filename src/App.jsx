@@ -14,6 +14,8 @@ const MARKET_COLOR = {
   "기타자산": "#8b5cf6",
 };
 
+const HOLDING_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f43f5e", "#84cc16", "#38bdf8", "#fb923c"];
+
 function toYahooSymbol(ticker, market) {
   const t = ticker.trim();
   if (!t) return "";
@@ -144,6 +146,7 @@ export default function PortfolioTracker() {
   const [loginInput, setLoginInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
+  const [allocView, setAllocView] = useState("전체"); // "전체" | "주식" | "코인"
 
   const [form, setForm] = useState({
     name: "",
@@ -358,7 +361,7 @@ export default function PortfolioTracker() {
   const todayPnLPct = todayBase ? (todayPnL / todayBase) * 100 : 0;
   const totalAssets = evalValue + visibleCash + visibleOther;
 
-  // 자산배분
+  // 자산배분 - 전체(자산유형별)
   const byMarket = {};
   visibleHoldings.forEach((h) => {
     byMarket[h.market] = (byMarket[h.market] || 0) + h.qty * h.currentPrice;
@@ -369,6 +372,22 @@ export default function PortfolioTracker() {
     .filter(([, v]) => v > 0)
     .map(([name, value]) => ({ name, value }));
   const allocTotal = allocData.reduce((s, d) => s + d.value, 0);
+
+  // 자산배분 - 주식 종목별 (코스피·코스닥·해외상장)
+  const stockAllocData = visibleHoldings
+    .filter((h) => h.market !== "코인")
+    .map((h) => ({ name: h.name, value: h.qty * h.currentPrice }))
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const stockAllocTotal = stockAllocData.reduce((s, d) => s + d.value, 0);
+
+  // 자산배분 - 코인 종목별
+  const coinAllocData = visibleHoldings
+    .filter((h) => h.market === "코인")
+    .map((h) => ({ name: h.name, value: h.qty * h.currentPrice }))
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const coinAllocTotal = coinAllocData.reduce((s, d) => s + d.value, 0);
 
   if (!loaded) {
     return (
@@ -568,49 +587,66 @@ export default function PortfolioTracker() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* 자산배분 */}
         <div className="lg:col-span-2 bg-slate-900 rounded-xl p-4">
-          <div className="text-sm font-medium text-slate-300 mb-3">자산 배분</div>
-          {allocData.length === 0 ? (
-            <div className="text-sm text-slate-600 py-8 text-center">종목을 추가하면 배분이 표시돼요.</div>
-          ) : (
-            <>
-              <div style={{ width: "100%", height: 200 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={allocData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={85}
-                      paddingAngle={2}
-                      stroke="none"
-                    >
-                      {allocData.map((entry, idx) => (
-                        <Cell key={idx} fill={MARKET_COLOR[entry.name] || "#64748b"} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value) => won(value)}
-                      contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8, fontSize: 12, color: "#e2e8f0" }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-1.5 mt-2">
-                {allocData
-                  .sort((a, b) => b.value - a.value)
-                  .map((d) => (
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-medium text-slate-300">자산 배분</div>
+            <div className="flex gap-1">
+              {["전체", "주식", "코인"].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setAllocView(v)}
+                  className={`text-xs px-2.5 py-1 rounded-full transition ${
+                    allocView === v ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {(() => {
+            const current =
+              allocView === "주식"
+                ? { data: stockAllocData, total: stockAllocTotal, empty: "보유한 주식이 없어요.", colorFn: (name, idx) => HOLDING_COLORS[idx % HOLDING_COLORS.length] }
+                : allocView === "코인"
+                ? { data: coinAllocData, total: coinAllocTotal, empty: "보유한 코인이 없어요.", colorFn: (name, idx) => HOLDING_COLORS[idx % HOLDING_COLORS.length] }
+                : { data: allocData, total: allocTotal, empty: "종목을 추가하면 배분이 표시돼요.", colorFn: (name) => MARKET_COLOR[name] || "#64748b" };
+
+            if (current.data.length === 0) {
+              return <div className="text-sm text-slate-600 py-8 text-center">{current.empty}</div>;
+            }
+
+            return (
+              <>
+                <div style={{ width: "100%", height: 200 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie data={current.data} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2} stroke="none">
+                        {current.data.map((entry, idx) => (
+                          <Cell key={idx} fill={current.colorFn(entry.name, idx)} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => won(value)}
+                        contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8, fontSize: 12, color: "#e2e8f0" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-1.5 mt-2">
+                  {current.data.map((d, idx) => (
                     <div key={d.name} className="flex items-center justify-between text-sm">
                       <span className="flex items-center gap-2 text-slate-300">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: MARKET_COLOR[d.name] || "#64748b" }} />
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: current.colorFn(d.name, idx) }} />
                         {d.name}
                       </span>
-                      <span className="text-slate-400">{allocTotal ? ((d.value / allocTotal) * 100).toFixed(0) : 0}%</span>
+                      <span className="text-slate-400">{current.total ? ((d.value / current.total) * 100).toFixed(0) : 0}%</span>
                     </div>
                   ))}
-              </div>
-            </>
-          )}
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* 보유 종목 테이블 */}
