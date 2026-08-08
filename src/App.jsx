@@ -147,6 +147,7 @@ export default function PortfolioTracker() {
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
   const [allocView, setAllocView] = useState("전체"); // "전체" | "주식" | "코인"
+  const [splitByBuyType, setSplitByBuyType] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -373,20 +374,27 @@ export default function PortfolioTracker() {
     .map(([name, value]) => ({ name, value }));
   const allocTotal = allocData.reduce((s, d) => s + d.value, 0);
 
-  // 자산배분 - 주식 종목별 (코스피·코스닥·해외상장)
-  const stockAllocData = visibleHoldings
-    .filter((h) => h.market !== "코인")
-    .map((h) => ({ name: h.name, value: h.qty * h.currentPrice }))
-    .filter((d) => d.value > 0)
-    .sort((a, b) => b.value - a.value);
+  // 종목 단위 배분 계산 (splitByType=true면 같은 종목이라도 현금/신용을 나눠서 집계)
+  const groupHoldingsByName = (list, splitByType) => {
+    const map = {};
+    list.forEach((h) => {
+      const key = splitByType ? `${h.name}· ${h.buyType}` : h.name;
+      map[key] = (map[key] || 0) + h.qty * h.currentPrice;
+    });
+    return Object.entries(map)
+      .filter(([, v]) => v > 0)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  };
+
+  // 자산배분 - 주식 종목별 (코스피·코스닥·해외상장, Apple/엔비디아 등 해외상장 포함)
+  const stockHoldingsOnly = visibleHoldings.filter((h) => h.market !== "코인");
+  const stockAllocData = groupHoldingsByName(stockHoldingsOnly, splitByBuyType);
   const stockAllocTotal = stockAllocData.reduce((s, d) => s + d.value, 0);
 
   // 자산배분 - 코인 종목별
-  const coinAllocData = visibleHoldings
-    .filter((h) => h.market === "코인")
-    .map((h) => ({ name: h.name, value: h.qty * h.currentPrice }))
-    .filter((d) => d.value > 0)
-    .sort((a, b) => b.value - a.value);
+  const coinHoldingsOnly = visibleHoldings.filter((h) => h.market === "코인");
+  const coinAllocData = groupHoldingsByName(coinHoldingsOnly, splitByBuyType);
   const coinAllocTotal = coinAllocData.reduce((s, d) => s + d.value, 0);
 
   if (!loaded) {
@@ -604,6 +612,24 @@ export default function PortfolioTracker() {
             </div>
           </div>
 
+          {(allocView === "주식" || allocView === "코인") && (
+            <button
+              onClick={() => setSplitByBuyType((v) => !v)}
+              className="mb-3 flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200"
+            >
+              <span
+                className={`w-8 h-4 rounded-full relative transition ${splitByBuyType ? "bg-emerald-600" : "bg-slate-700"}`}
+              >
+                <span
+                  className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition ${
+                    splitByBuyType ? "left-4" : "left-0.5"
+                  }`}
+                />
+              </span>
+              현금·신용 구분해서 보기
+            </button>
+          )}
+
           {(() => {
             const current =
               allocView === "주식"
@@ -657,7 +683,7 @@ export default function PortfolioTracker() {
                         <span className="w-2.5 h-2.5 rounded-full" style={{ background: current.colorFn(d.name, idx) }} />
                         {d.name}
                       </span>
-                      <span className="text-slate-400">{current.total ? ((d.value / current.total) * 100).toFixed(0) : 0}%</span>
+                      <span className="text-slate-400">{current.total ? ((d.value / current.total) * 100).toFixed(1) : "0.0"}%</span>
                     </div>
                   ))}
                 </div>
@@ -743,7 +769,7 @@ export default function PortfolioTracker() {
                         <div className="text-xs">{pct(pnlPct)}</div>
                       </td>
                       <td className={`text-right py-2 ${changeColor(todayChange)}`}>{won(todayChange)}</td>
-                      <td className="text-right py-2 text-slate-400">{weight.toFixed(0)}%</td>
+                      <td className="text-right py-2 text-slate-400">{weight.toFixed(1)}%</td>
                       <td className="py-2 text-right">
                         <button onClick={() => removeHolding(h.id)} className="text-slate-600 hover:text-red-400">
                           <Trash2 size={14} />
