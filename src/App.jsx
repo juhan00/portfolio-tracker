@@ -148,6 +148,7 @@ export default function PortfolioTracker() {
   const [loggingIn, setLoggingIn] = useState(false);
   const [allocView, setAllocView] = useState("전체"); // "전체" | "주식" | "코인"
   const [splitByBuyType, setSplitByBuyType] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -533,7 +534,7 @@ export default function PortfolioTracker() {
                 className="opacity-60 hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
-                  removeAccount(a);
+                  setAccountToDelete(a);
                 }}
               />
             )}
@@ -871,6 +872,34 @@ export default function PortfolioTracker() {
           구분에서 신용(미수·신용거래)과 현금 매수를 구분해 표시할 수 있어요.
         </p>
       </div>
+
+      {accountToDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 max-w-sm w-full">
+            <div className="text-sm font-medium text-slate-100 mb-2">계좌를 삭제할까요?</div>
+            <p className="text-sm text-slate-400 mb-4">
+              <span className="text-slate-200">"{accountToDelete}"</span> 계좌를 삭제하면 되돌릴 수 없어요. 이 계좌에 등록된 예수금·기타자산 정보도 함께 사라져요.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setAccountToDelete(null)}
+                className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm transition"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  removeAccount(accountToDelete);
+                  setAccountToDelete(null);
+                }}
+                className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm transition"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
