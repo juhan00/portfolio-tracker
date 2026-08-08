@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { RefreshCw, Plus, Trash2, Wallet, AlertCircle, X } from "lucide-react";
+import { RefreshCw, Plus, Trash2, Wallet, AlertCircle, X, GripVertical } from "lucide-react";
 
 const MARKET_OPTIONS = ["코스피", "코스닥", "해외상장", "ETF", "코인"];
 const BUY_TYPES = ["현금", "신용"];
@@ -151,6 +151,7 @@ export default function PortfolioTracker() {
   const [allocView, setAllocView] = useState("전체"); // "전체" | "주식" | "코인"
   const [splitByBuyType, setSplitByBuyType] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState(null);
+  const [draggedId, setDraggedId] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -306,6 +307,19 @@ export default function PortfolioTracker() {
   };
 
   const removeHolding = (id) => setHoldings((prev) => prev.filter((h) => h.id !== id));
+
+  const reorderHoldings = (draggedHoldingId, targetHoldingId) => {
+    if (draggedHoldingId === targetHoldingId) return;
+    setHoldings((prev) => {
+      const draggedIndex = prev.findIndex((h) => h.id === draggedHoldingId);
+      const targetIndex = prev.findIndex((h) => h.id === targetHoldingId);
+      if (draggedIndex === -1 || targetIndex === -1) return prev;
+      const next = [...prev];
+      const [item] = next.splice(draggedIndex, 1);
+      next.splice(targetIndex, 0, item);
+      return next;
+    });
+  };
 
   const NUMERIC_FIELDS = ["currentPrice", "prevClose", "avgPrice", "qty"];
 
@@ -724,6 +738,7 @@ export default function PortfolioTracker() {
             <table className="w-full text-sm min-w-[700px]">
               <thead>
                 <tr className="text-slate-500 text-xs border-b border-slate-800">
+                  <th className="w-6"></th>
                   <th className="text-left font-normal py-2">종목</th>
                   <th className="text-left font-normal py-2">구분</th>
                   <th className="text-right font-normal py-2">수량</th>
@@ -744,7 +759,25 @@ export default function PortfolioTracker() {
                   const todayChange = h.qty * (h.currentPrice - h.prevClose);
                   const weight = evalValue ? (value / evalValue) * 100 : 0;
                   return (
-                    <tr key={h.id} className="border-b border-slate-800/60 last:border-0">
+                    <tr
+                      key={h.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggedId(h.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (draggedId) reorderHoldings(draggedId, h.id);
+                        setDraggedId(null);
+                      }}
+                      onDragEnd={() => setDraggedId(null)}
+                      className={`border-b border-slate-800/60 last:border-0 ${draggedId === h.id ? "opacity-40" : ""}`}
+                    >
+                      <td className="py-2 pr-1 text-slate-600 cursor-grab active:cursor-grabbing">
+                        <GripVertical size={14} />
+                      </td>
                       <td className="py-2">
                         <div className="text-slate-100">{h.name}</div>
                         <div className="text-xs text-slate-500">
