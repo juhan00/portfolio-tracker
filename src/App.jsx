@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { RefreshCw, Plus, Trash2, Wallet, AlertCircle, X } from "lucide-react";
 
@@ -346,6 +346,17 @@ export default function PortfolioTracker() {
     setLastUpdated(new Date());
     setRefreshing(false);
   }, [holdings]);
+
+  const autoRefreshedRef = useRef(false);
+  useEffect(() => {
+    if (!loaded) return;
+    if (autoRefreshedRef.current) return;
+    autoRefreshedRef.current = true;
+    if (holdings.length > 0) {
+      refreshAll();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
 
   // 계좌 필터 적용
   const visibleHoldings = filter === "전체" ? holdings : holdings.filter((h) => h.account === filter);
