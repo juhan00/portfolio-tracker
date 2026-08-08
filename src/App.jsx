@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { RefreshCw, Plus, Trash2, Wallet, AlertCircle, X } from "lucide-react";
 
-const MARKET_OPTIONS = ["코스피", "코스닥", "해외상장", "코인"];
+const MARKET_OPTIONS = ["코스피", "코스닥", "해외상장", "ETF", "코인"];
 const BUY_TYPES = ["현금", "신용"];
 
 const MARKET_COLOR = {
   "코스피": "#10b981",
   "코스닥": "#34d399",
   "해외상장": "#3b82f6",
+  "ETF": "#22d3ee",
   "코인": "#f59e0b",
   "예수금": "#94a3b8",
   "기타자산": "#8b5cf6",
@@ -22,6 +23,7 @@ function toYahooSymbol(ticker, market) {
   if (t.includes(".") || t.includes("-")) return t;
   if (market === "코스피") return `${t}.KS`;
   if (market === "코스닥") return `${t}.KQ`;
+  if (market === "ETF") return /^\d+$/.test(t) ? `${t}.KS` : t; // 숫자 코드면 국내 ETF로 간주
   return t;
 }
 
@@ -868,7 +870,7 @@ export default function PortfolioTracker() {
           <Plus size={14} /> 종목 추가
         </button>
         <p className="text-xs text-slate-600 mt-2">
-          티커: 국내 종목은 코드 6자리(예 005930), 해외 종목은 티커(예 AAPL, NVDA), 코인은 BTC-USD 형식으로 입력하면 새로고침 시 자동 조회됩니다.
+          티커: 국내 종목은 코드 6자리(예 005930), 해외 종목은 티커(예 AAPL, NVDA), 국내 ETF는 코드 6자리(예 069500), 해외 ETF는 티커(예 SPY, QQQ), 코인은 BTC-USD 형식으로 입력하면 새로고침 시 자동 조회됩니다.
           구분에서 신용(미수·신용거래)과 현금 매수를 구분해 표시할 수 있어요.
         </p>
       </div>
