@@ -83,6 +83,7 @@ const DEMO_DATA = {
 };
 
 const OWNER_TOKEN_KEY = "portfolio-owner-token";
+const DEMO_STORAGE_KEY = "portfolio-demo-data";
 
 async function fetchQuote(symbol) {
   // 1순위: 이 앱과 함께 배포된 Vercel 서버리스 프록시 (/api/quote).
@@ -163,6 +164,21 @@ export default function PortfolioTracker() {
   };
 
   const loadDemo = () => {
+    let demoData = DEMO_DATA;
+    try {
+      const saved = localStorage.getItem(DEMO_STORAGE_KEY);
+      if (saved) demoData = JSON.parse(saved);
+    } catch (e) {
+      // 저장된 데모 데이터가 손상됐으면 기본값 사용
+    }
+    applyData(demoData, demoData.accounts && demoData.accounts.length ? demoData.accounts : DEMO_DATA.accounts);
+    setMode("demo");
+  };
+
+  const resetDemo = () => {
+    try {
+      localStorage.removeItem(DEMO_STORAGE_KEY);
+    } catch (e) {}
     applyData(DEMO_DATA, DEMO_DATA.accounts);
     setMode("demo");
   };
@@ -199,6 +215,18 @@ export default function PortfolioTracker() {
     }, 800);
     return () => clearTimeout(timer);
   }, [holdings, accounts, cashMap, otherMap, loaded, mode, token]);
+
+  useEffect(() => {
+    if (!loaded || mode !== "demo") return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify({ holdings, accounts, cashMap, otherMap }));
+      } catch (e) {
+        // 데모 저장 실패는 조용히 무시 (기능에 영향 없음)
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [holdings, accounts, cashMap, otherMap, loaded, mode]);
 
   const handleLogin = async () => {
     if (!loginInput.trim()) return;
@@ -420,9 +448,14 @@ export default function PortfolioTracker() {
       )}
 
       {mode === "demo" && !loginOpen && (
-        <div className="flex items-start gap-2 bg-slate-900 text-slate-500 text-xs rounded-lg p-3">
-          <AlertCircle size={14} className="mt-0.5 shrink-0" />
-          <span>지금 보고 계신 화면은 예시 데이터로 채워진 데모예요. 실제로 저장되지 않으니 마음껏 눌러보셔도 돼요.</span>
+        <div className="flex items-center justify-between gap-2 bg-slate-900 text-slate-500 text-xs rounded-lg p-3">
+          <span className="flex items-start gap-2">
+            <AlertCircle size={14} className="mt-0.5 shrink-0" />
+            이 브라우저에 저장되는 데모 화면이에요. 다른 방문자에게는 보이지 않고, 실제 포트폴리오와도 무관해요.
+          </span>
+          <button onClick={resetDemo} className="shrink-0 text-slate-400 hover:text-slate-200 underline underline-offset-2">
+            데모 초기화
+          </button>
         </div>
       )}
 
