@@ -152,6 +152,7 @@ export default function PortfolioTracker() {
   const [splitByBuyType, setSplitByBuyType] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState(null);
   const [draggedId, setDraggedId] = useState(null);
+  const [holdingToDelete, setHoldingToDelete] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -825,7 +826,7 @@ export default function PortfolioTracker() {
                       <td className={`text-right py-2 ${changeColor(todayChange)}`}>{won(todayChange)}</td>
                       <td className="text-right py-2 text-slate-400">{weight.toFixed(1)}%</td>
                       <td className="py-2 text-right">
-                        <button onClick={() => removeHolding(h.id)} className="text-slate-600 hover:text-red-400">
+                        <button onClick={() => setHoldingToDelete(h)} className="text-slate-600 hover:text-red-400">
                           <Trash2 size={14} />
                         </button>
                       </td>
@@ -926,6 +927,34 @@ export default function PortfolioTracker() {
                 onClick={() => {
                   removeAccount(accountToDelete);
                   setAccountToDelete(null);
+                }}
+                className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm transition"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {holdingToDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 max-w-sm w-full">
+            <div className="text-sm font-medium text-slate-100 mb-2">종목을 삭제할까요?</div>
+            <p className="text-sm text-slate-400 mb-4">
+              <span className="text-slate-200">"{holdingToDelete.name}"</span> 종목을 삭제하면 되돌릴 수 없어요. 보유 수량·평단가 등 모든 기록이 함께 사라져요.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setHoldingToDelete(null)}
+                className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm transition"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  removeHolding(holdingToDelete.id);
+                  setHoldingToDelete(null);
                 }}
                 className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm transition"
               >
