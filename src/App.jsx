@@ -746,7 +746,14 @@ export default function PortfolioTracker() {
                           {h.buyType}
                         </span>
                       </td>
-                      <td className="text-right py-2 text-slate-300">{h.qty.toLocaleString("ko-KR")}</td>
+                      <td className="text-right py-2">
+                        <input
+                          type="number"
+                          value={h.qty}
+                          onChange={(e) => updateHolding(h.id, "qty", e.target.value)}
+                          className="bg-slate-800 text-slate-100 text-right text-sm rounded px-2 py-1 w-20 outline-none"
+                        />
+                      </td>
                       <td className="text-right py-2">
                         <input
                           type="number"
