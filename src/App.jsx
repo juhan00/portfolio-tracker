@@ -628,10 +628,27 @@ export default function PortfolioTracker() {
                       </Pie>
                       <Tooltip
                         formatter={(value) => won(value)}
-                        contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8, fontSize: 12, color: "#e2e8f0" }}
+                        contentStyle={{
+                          background: "#1e293b",
+                          border: "none",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          color: "#ffffff",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                        }}
+                        itemStyle={{ color: "#ffffff" }}
+                        labelStyle={{ color: "#ffffff", marginBottom: 4 }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
+                  <style>{`
+                    .recharts-wrapper svg *:focus,
+                    .recharts-wrapper svg *:focus-visible,
+                    .recharts-sector,
+                    .recharts-pie-sector {
+                      outline: none !important;
+                    }
+                  `}</style>
                 </div>
                 <div className="space-y-1.5 mt-2">
                   {current.data.map((d, idx) => (
